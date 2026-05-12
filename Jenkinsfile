@@ -1,7 +1,7 @@
 @Library('jenkins-shared-library') _
 
-buildAndDeploy {
-    serviceName = 'service-c'
-    appPort = 8083
-    gitopsPath = 'service-c/deployment.yaml'
-}
+buildAndDeploy([
+    serviceName: 'service-a',
+    appPort: 8081,
+    gitopsPath: 'service-a/deployment.yaml'
+])
