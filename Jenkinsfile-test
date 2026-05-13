@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'mvn'
+        jdk 'jdk17'
+    }
+
+    environment {
+        SERVICE_NAME = 'service-a'
+        APP_PORT = '8081'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Configure Port') {
+            steps {
+                script {
+                    sh """
+                        if [ -f src/main/resources/application.properties ]; then
+                            echo "server.port=${APP_PORT}" >> src/main/resources/application.properties
+                        else
+                            mkdir -p src/main/resources
+                            echo "server.port=${APP_PORT}" > src/main/resources/application.properties
+                        fi
+                    """
+                }
+            }
+        }
+
+        stage('Compile') {
+            steps {
+                sh 'mvn clean compile'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                script {
+                    try {
+                        sh 'mvn test'
+                        echo "All tests passed"
+                    } catch (Exception e) {
+                        echo "Tests failed"
+                        currentBuild.result = 'UNSTABLE'
+                    }
+                }
+            }
+        }
+
+        stage('Test Report') {
+            steps {
+                junit 'target/surefire-reports/*.xml'
+            }
+        }
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo "✅ Tests passed for ${SERVICE_NAME}"
+        }
+        unstable {
+            echo "⚠️ Some tests failed for ${SERVICE_NAME}"
+        }
+    }
+}
